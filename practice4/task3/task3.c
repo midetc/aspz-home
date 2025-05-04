@@ -1,15 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int main() {
-    void *allocated = malloc(0);
-
-    if (!allocated) {
-        printf("Результат malloc(0): NULL\n");
+int main(void) {
+    void *ptr = malloc(0);
+    if (ptr == NULL) {
+        printf("malloc(0) returned NULL\n");
     } else {
-        printf("Результат malloc(0): вказівник %p\n", allocated);
-        free(allocated);
+        printf("malloc(0) returned pointer %p\n", ptr);
+        free(ptr);
     }
-
     return 0;
 }
