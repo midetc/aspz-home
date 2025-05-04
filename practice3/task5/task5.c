@@ -15,12 +15,10 @@ int main(int argc, char *argv[]) {
     const char *inPath  = argv[1];
     const char *outPath = argv[2];
 
-    /* Не дозволяємо однакові файли як джерело та призначення */
     if (strcmp(inPath, outPath) == 0) {
         fprintf(stderr, "Error: source and destination must be different\n");
         return EXIT_FAILURE;
     }
-    /* Додаткова перевірка: однаковий inode на файловій системі */
     struct stat st1, st2;
     if (stat(inPath, &st1) == 0 && stat(outPath, &st2) == 0) {
         if (st1.st_dev == st2.st_dev && st1.st_ino == st2.st_ino) {
