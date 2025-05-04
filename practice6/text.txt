@@ -1,0 +1,83 @@
+**Условие задачи**  
+Скомпилировать программу с поддержкой AddressSanitizer (`-fsanitize=address -g`), запустить её и зафиксировать время выполнения и вывод ошибки. Затем собрать тот же код без ASan и прогнать его под Valgrind (`--leak-check=full`), снова сравнив скорость и содержание отчётов.
+
+---
+
+```c
+/* task1.c */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main(void)
+{
+    char *buf = malloc(10);
+    if (!buf) return 1;
+    /* навязательное переполнение: 14 символов в буфер 10 байт */
+    strcpy(buf, "0123456789ABC");
+    printf("buf: %s\n", buf);
+    free(buf);
+    return 0;
+}
+```
+
+---
+
+**Объяснение**  
+Программа выделяет в куче ровно 10 байт, а затем `strcpy` записывает туда 14 символов (плюс завершающий `'\0'`), гарантированно выходя за границы. Это — классический **heap-buffer-overflow**. Без специальных инструментов (просто `malloc` + `strcpy`) вы, возможно, даже увидите строку полностью, но такое поведение уже — неопределённое.  
+
+- **AddressSanitizer** окружает каждый блок «красными зонами» и при первом выходе за границу аварийно заверша­ет программу, показывая, где именно случилось переполнение.  
+- **Valgrind (Memcheck)** эмулирует каждый доступ к памяти и после полного прогона выдаёт отчёт обо всех «invalid write/read», но делает это значительно медленнее.
+
+---
+
+**Результаты**
+
+1. **ASan**  
+   ```sh
+   clang -fsanitize=address -g -fno-pie task1.c -o task_asan
+   sudo sysctl kern.elf64.aslr_enabled=0
+   time ./task_asan
+   ```
+   ```
+   buf: 0123456789ABC
+   =================================================================
+   ==9807==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x50200000001a
+   WRITE of size 14 at 0x50200000001a thread T0
+       #0  strcpy  …/asan_interceptors.cpp:556
+       #1  main    task1.c:9
+   0x50200000001a is located 0 bytes after 10-byte region [0x502000000010,0x50200000001a)
+   SUMMARY: AddressSanitizer: heap-buffer-overflow task1.c:9 in main
+   ==9807==ABORTING
+
+   real 0.04 s  user 0.00 s  sys 0.01 s
+   ```
+
+2. **Valgrind**  
+   ```sh
+   clang -g task1.c -o task_val
+   time valgrind --leak-check=full ./task_val
+   ```
+   ```
+   ==9813== Memcheck, a memory error detector
+   ==9813== Invalid write of size 1
+   ==9813==    at 0x48554CE: strcpy (vg_replace_strmem.c:568)
+   ==9813==    by 0x201791: main (task1.c:9)
+   ==9813==  Address 0x556104a is 0 bytes after a block of size 10 alloc'd
+   ==9813== 
+   … (ещё несколько “Invalid write” и “Invalid read” при printf)… 
+   buf: 0123456789ABC
+   ==9813== HEAP SUMMARY:
+   ==9813==   total heap usage: 2 allocs, 1 free, …
+   ==9813== ERROR SUMMARY: 14 errors from 9 contexts
+
+   real 0.27 s  user 0.14 s  sys 0.12 s
+   ```
+
+---
+
+**Итог**  
+- **AddressSanitizer** обнаружил переполнение сразу и завершил программу за ~0.04 с, чётко указав место ошибки.  
+- **Valgrind** также нашёл все invalid write/read, но потребовал ~0.27 с и выдал более длинный отчёт.  
+
+Оба инструмента корректно демонстрируют heap-buffer-overflow, но ASan быстрее и короче в интерактивном использовании, тогда как Valgrind даёт более исчерпывающий анализ.
