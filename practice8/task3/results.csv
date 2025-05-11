@@ -1,0 +1,17 @@
+size,type,time_us,correct
+10000,increasing,114,1
+10000,decreasing,134,1
+10000,constant,42,1
+10000,random,867,1
+20000,increasing,223,1
+20000,decreasing,267,1
+20000,constant,77,1
+20000,random,1883,1
+50000,increasing,548,1
+50000,decreasing,664,1
+50000,constant,188,1
+50000,random,4867,1
+100000,increasing,1106,1
+100000,decreasing,1301,1
+100000,constant,372,1
+100000,random,10696,1
