@@ -18,7 +18,7 @@ int main(void){
 #ifdef USE_JEMALLOC
     const char *tag="jemalloc";
 #else
-    const char *tag="libc malloc";
+    const char *tag="jemalloc analog";
 #endif
     snprintf(buf,64,"Hello from %s!\n",tag);
     fputs(buf,stdout);
